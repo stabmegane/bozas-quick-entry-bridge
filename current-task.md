@@ -2,7 +2,23 @@
 
 > This file describes what Claude Code should be working on right now. It is overwritten by claude.ai as work progresses.
 
-## Status: Not started
+## Status: Completed — 2026-05-15
+
+### Summary
+
+- Added `scripts/probe-getdata.ts` — loads config, logs in via the existing Pylon client, calls `getData("Items", { packageNumber: 1, packageSize: 2 })`, and `console.log(JSON.stringify(resp, null, 2))`. No colour, no row-finder. On any failure (including `PylonError`) it prints the error + body and exits 1.
+- Wired `npm run probe-getdata` in `package.json` (uses `tsx`).
+- Did **not** touch `src/lib/pylon/client.ts` — `unwrapResult` and `assertNoPylonError` still run, so what the probe prints is the post-unwrap payload (i.e. the inner object with `Cookie`, `Data`, `Messages`). That's the shape we need to type next.
+- Typecheck and ESLint clean. Commit `e9e2cd1` pushed to the private repo.
+
+### Next step (for the owner)
+
+```bash
+cd ~/bozas-quick-entry
+npm run probe-getdata
+```
+
+Paste the JSON output back into claude.ai (or this bridge) so we can lock down the `getdata` response types and fix the row extraction in `test-config`.
 
 ## Task: Pylon response probing
 
