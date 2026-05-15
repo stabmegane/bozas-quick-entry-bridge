@@ -2,100 +2,122 @@
 
 > This file describes what Claude Code should be working on right now. It is overwritten by claude.ai as work progresses.
 
-## Status: Completed — 2026-05-15
+## Status: Not started
 
-### Summary
+## Task: Pylon API client + diagnostic
 
-Initial project skeleton pushed to `github.com/stabmegane/bozas-quick-entry` (commit `ad57f03 Initial project skeleton`).
+Implement the client that talks to the Pylon Connectivity API. No UI, no voice, no parser. We just want a robust, typed client and a diagnostic command that proves it works against a real Pylon server.
 
-- Cloned the empty private repo to `~/bozas-quick-entry/` via SSH.
-- Scaffolded a Next.js 16.2.6 App Router project (TypeScript, Tailwind v4, ESLint v9, `@/*` alias). Note: `create-next-app` shipped Next 16 — well above the "14+" floor.
-- Created the folder layout from the brief: `src/{app,components,types}`, `src/lib/{config,pylon,parser,db}`, `config/`, `scripts/`. Empty dirs hold a `.gitkeep`.
-- `src/types/config.ts` defines `AppConfig` (with `PylonConfig`, `DefaultsConfig`, `SearchConfig`, `UiConfig`, `ParserConfig`) matching the schema in BRIEFING.md.
-- `src/lib/config/index.ts` exports `getConfig()` — reads `CONFIG_PATH` (default `./config/config.json`), validates every required field exists, asserts `parser.mode ∈ {regex, llm}`, fail-fast with a clear `[config] ...` error, then caches the parsed object.
-- `config/config.example.json` mirrors the schema with `REPLACE_WITH_*` placeholders (no real credentials).
-- `.gitignore` extends the Next.js default with `/config/config.json`, `/data/`, and `Thumbs.db`. `node_modules`, `.next`, `.env*`, `.DS_Store` were already covered.
-- `scripts/setup.ts` and `scripts/test-config.ts` exist as stubs (print "not implemented yet" and exit 1) — full implementations are deferred.
-- `README.md` rewritten: one-paragraph description, quick-start (clone → install → copy example config → edit → `npm run dev`), and a link back to this bridge repo.
-- `npm install` → 360 packages, 2 moderate audit warnings, no breakages.
-- `npm run dev` boots on port 3001 (port 3000 was occupied by another local process on this codebox); the default Next.js starter page returns HTTP 200.
-- `npx tsc --noEmit` and `npm run lint` both clean.
+### Goals
 
-### Notes for the owner
+1. **Pylon client** in `src/lib/pylon/` that exposes:
+   - `login()`: calls `elogin`, returns and internally caches the cookie
+   - `getData(entityCode, options?)`: wraps `getdata` with the cached cookie
+   - `postData(entityCode, data)`: wraps `postdata` with the cached cookie
+   - Auto re-login ONCE on cookie expiry, then retry the original request. If it fails again, throw.
+   - Typed requests and responses based on the shapes in the Pylon docs and the actual `SalesOrders` script in the API template.
 
-- `create-next-app` also dropped its own `AGENTS.md` and `CLAUDE.md` into the repo (a one-line warning that Next 16 has breaking changes). Left in place — harmless, but say the word if you want them removed.
-- Dev server fell back to port 3001 here because another project on this codebox already binds 3000. On a clean host it will use 3000 as the brief expects.
-- No questions raised; no `questions.md` updates needed for this task.
+2. **Types** in `src/lib/pylon/types.ts`:
+   - `PylonLoginRequest`, `PylonLoginResponse`
+   - `PylonGetDataRequest`, `PylonGetDataResponse`
+   - `PylonPostDataRequest`, `PylonPostDataResponse`
+   - `PylonError` class that preserves the server's `Messages` payload if present
 
-### Ready for next task
+3. **Error handling**:
+   - Network errors (fetch rejecting, timeout) → throw `PylonError` with clear message
+   - HTTP non-2xx → throw `PylonError` including status + body
+   - Pylon returned a body with `Status != "OK"` or with an `Error` field → throw `PylonError` with that information
+   - No silent failures
 
-## Task: Foundation setup
+4. **Cookie cache**: in-process singleton (store in module state). No disk persistence. Cookie is re-fetched on the first call after process start and re-fetched once if expired.
 
-Your first task is to set up the foundation of the project. Do not start writing application logic yet. The goal is to have a clean, runnable Next.js project skeleton with the right structure and tooling in place, before we add the real features.
+5. **Diagnostic script** `scripts/test-config.ts`:
+   - Run with `npm run test-config`
+   - Loads config
+   - Performs `elogin` and reports `Cookie OK` or error
+   - Calls an existing Get script from the API template to prove data flow works. Try `Items` with `packagenumber: 1` and `packagesize: 1`. Report how many rows came back and the first row's keys.
+   - Coloured, readable output with ✅ / ❌ next to each step
+   - Exit code 0 on full success, 1 on any failure
 
-### Steps
+6. **Add `npm run test-config`** script in package.json.
 
-1. **Read BRIEFING.md first.** Make sure you understand the project context, architecture, and tech stack decisions.
+7. **Unit tests are not required yet.** The diagnostic against the real server is our integration test.
 
-2. **Initialize the private repository** at `github.com/stabmegane/bozas-quick-entry` (currently empty). Clone it locally on the codebox alongside this bridge repo.
+### Config
 
-3. **Create a Next.js 14+ project** with the App Router:
-   - TypeScript
-   - Tailwind CSS
-   - ESLint
-   - Default import alias `@/*`
+The owner will provide a real `config/config.json` with test credentials before running the diagnostic. Assume the following placeholder shape is correct and don't invent extra fields:
 
-4. **Set up the project structure** with these folders:
-
-```
-src/
-  app/                    Next.js routes
-  components/             React components
-  lib/
-    config/               Config loader + types
-    pylon/                Pylon API client (login, getdata, postdata)
-    parser/               Voice command parsers (regex now, llm later)
-    db/                   SQLite audit log
-  types/                  Shared TypeScript types
-config/
-  config.example.json     Template config (no real secrets)
-scripts/
-  setup.ts                CLI setup wizard
-  test-config.ts         Connection diagnostic tool
+```json
+{
+  "pylon": {
+    "apiUrl": "http://192.168.200.100:7024/exesjson",
+    "apiCode": "UOCUQZNWVDBG7OA",
+    "applicationName": "Hercules.MyPylonCommercial",
+    "databaseAlias": "…",
+    "username": "…",
+    "password": "…"
+  },
+  ...
+}
 ```
 
-5. **Create the config loader** in `src/lib/config/`:
-   - Define TypeScript types matching the config.json schema in BRIEFING.md
-   - Read config from path specified by `CONFIG_PATH` env var, default `./config/config.json`
-   - Validate required fields exist on load; fail fast with clear error message
-   - Export a singleton `config` object
+If the existing `config.example.json` misses any field that the real Pylon call needs, update the example to include it. Keep placeholders (no real secrets).
 
-6. **Create `config/config.example.json`** matching the schema in BRIEFING.md with placeholder/example values (NOT real credentials).
+### Request shapes (from samples)
 
-7. **Create a `.gitignore`** that excludes:
-   - `node_modules/`
-   - `.next/`
-   - `config/config.json` (real config never committed)
-   - `data/` (SQLite files never committed)
-   - `.env*`
-   - OS files (.DS_Store, Thumbs.db)
+**Login** (POST `{apiUrl}/elogin`):
+```json
+{
+  "username": "...",
+  "password": "...",
+  "apicode": "...",
+  "applicationname": "Hercules.MyPylonCommercial",
+  "databasealias": "..."
+}
+```
 
-8. **Create a minimal README.md** for the private repo with:
-   - Project description (one paragraph)
-   - Quick start: clone, install, copy config.example.json to config.json, edit, run
-   - Link to this bridge repo for full context
+The response body has a `Result` field that contains a JSON-serialized string with the actual payload inside. The `cookie` is nested in that inner JSON. Parse it carefully. See the Postman collection example in the project's Pylon docs for the double-encoding pattern.
 
-9. **Verify it runs:** `npm run dev` should start the Next.js dev server on port 3000, showing the default starter page. We will replace this page in the next task.
+**Getdata** (POST `{apiUrl}/getdata`):
+```json
+{
+  "cookie": "...",
+  "apicode": "...",
+  "entitycode": "Items",
+  "packagenumber": 1,
+  "packagesize": 2000,
+  "extras": "{\"@itemIDs\":[...]}"
+}
+```
 
-10. **Commit and push** to the private repo with message: `Initial project skeleton`
+`extras` is stringified JSON when used; the client should accept a plain object from the caller and stringify it internally.
+
+**Postdata** (POST `{apiUrl}/postdata`):
+```json
+{
+  "cookie": "...",
+  "apicode": "...",
+  "entitycode": "SalesOrders",
+  "data": "{\"CstmID\":\"...\",\"SeriesCode\":\"ΠΑΡ\",\"Lines\":[...]}"
+}
+```
+
+Same pattern: `data` is a stringified JSON. The client accepts an object and stringifies it.
 
 ### Constraints
 
-- Do not write any voice recognition, NLP, Pylon API client, or UI feature logic yet. That comes in later tasks.
-- Do not commit any real credentials, API codes, or customer data.
-- Use exact column names from BRIEFING.md when defining types — do not invent variations.
-- If anything is ambiguous, write the question to `questions.md` in this bridge repo and stop. Do not guess.
+- No UI, no routes, no react components in this task. Server-side / library code only.
+- No hardcoded URLs or credentials — everything comes from config.
+- No external HTTP library; use native `fetch`.
+- Fail-fast. No silent retries except the one-time re-login.
+- If anything is ambiguous (e.g. response shape details don't match reality), stop and add a question to `questions.md` in the bridge repo.
+
+### Acceptance criteria
+
+- `npm run test-config` run from the codebox connects to the real Pylon at 192.168.200.100:7024 using the provided config, prints ✅ for login and getdata, and exits 0.
+- Code is typed, compiles cleanly (throu --noEmit), and passes ESLint.
+- config/config.example.json remains up-to-date.
 
 ### When done
 
-Update this file's Status to `Completed` and add a short summary of what you did and what files were created. Then ask the owner what to work on next.
+Update this file's Status to `Completed` and add a short summary. Then ask the owner what to work on next.
