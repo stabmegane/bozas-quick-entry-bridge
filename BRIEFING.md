@@ -20,7 +20,7 @@ This is **not** a generic SaaS — it's a focused internal tool first, designed 
 
 ## Architecture (decided)
 
-\`\`\`
+```
 Mobile browsers (3 users)
         ↓ HTTPS via Cloudflare Tunnel
         ↓ (auth via Cloudflare Access)
@@ -29,7 +29,7 @@ Web App (Next.js + TypeScript)
 Pylon Connectivity API (http://pylon-server:7024/exesjson/)
         ↓
 SQL Server (Pylon DB)
-\`\`\`
+```
 
 **Key principle:** the web app never touches the Pylon database directly. All interaction is via the official Connectivity API.
 
@@ -71,9 +71,9 @@ These come from the Pylon API Template. The current dev template:
 
 A new Get-type script CustomerSearch that:
 - Accepts @search parameter (raw text, Greek or Latin)
-- Calls sc\$String.SoundexConvertSqlLike(searchText) to convert to Pylon's soundex
+- Calls sc$String.SoundexConvertSqlLike(searchText) to convert to Pylon's soundex
 - Executes SQL query against HECUSTOMERS joined with HETRADERS and HECONTACTS
-- Filters by HECOMPID = @\$System\$CurCompany and HEACTIVE = 1
+- Filters by HECOMPID = @$System$CurCompany and HEACTIVE = 1
 - Searches LIKE '%soundex%' on HENAMESOUNDEX column
 - Returns: CSTMID, CSTMCODE, CSTMNAME, CSTMTIN, TRDRID
 
@@ -123,7 +123,7 @@ Known so far:
 
 Everything that varies per deployment goes in config.json mounted from the host:
 
-\`\`\`json
+```json
 {
   "pylon": {
     "apiUrl": "http://192.168.200.100:7024/exesjson",
@@ -151,7 +151,7 @@ Everything that varies per deployment goes in config.json mounted from the host:
     "mode": "regex"
   }
 }
-\`\`\`
+```
 
 Provide a CLI setup wizard (npm run setup) that interactively builds this config with validation (test connection to Pylon API before saving).
 
@@ -165,7 +165,7 @@ Fail-fast. If Pylon API call fails, show clear error to the user with a retry bu
 
 Schema:
 
-\`\`\`sql
+```sql
 CREATE TABLE entries (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   created_at DATETIME NOT NULL,
@@ -181,7 +181,7 @@ CREATE TABLE entries (
   error_message TEXT,
   duration_ms INTEGER
 );
-\`\`\`
+```
 
 Provide a "History" view in the UI showing last 50 entries per user.
 
