@@ -2,7 +2,32 @@
 
 > This file describes what Claude Code should be working on right now. It is overwritten by claude.ai as work progresses.
 
-## Status: Not started — awaiting first session
+## Status: Completed — 2026-05-15
+
+### Summary
+
+Initial project skeleton pushed to `github.com/stabmegane/bozas-quick-entry` (commit `ad57f03 Initial project skeleton`).
+
+- Cloned the empty private repo to `~/bozas-quick-entry/` via SSH.
+- Scaffolded a Next.js 16.2.6 App Router project (TypeScript, Tailwind v4, ESLint v9, `@/*` alias). Note: `create-next-app` shipped Next 16 — well above the "14+" floor.
+- Created the folder layout from the brief: `src/{app,components,types}`, `src/lib/{config,pylon,parser,db}`, `config/`, `scripts/`. Empty dirs hold a `.gitkeep`.
+- `src/types/config.ts` defines `AppConfig` (with `PylonConfig`, `DefaultsConfig`, `SearchConfig`, `UiConfig`, `ParserConfig`) matching the schema in BRIEFING.md.
+- `src/lib/config/index.ts` exports `getConfig()` — reads `CONFIG_PATH` (default `./config/config.json`), validates every required field exists, asserts `parser.mode ∈ {regex, llm}`, fail-fast with a clear `[config] ...` error, then caches the parsed object.
+- `config/config.example.json` mirrors the schema with `REPLACE_WITH_*` placeholders (no real credentials).
+- `.gitignore` extends the Next.js default with `/config/config.json`, `/data/`, and `Thumbs.db`. `node_modules`, `.next`, `.env*`, `.DS_Store` were already covered.
+- `scripts/setup.ts` and `scripts/test-config.ts` exist as stubs (print "not implemented yet" and exit 1) — full implementations are deferred.
+- `README.md` rewritten: one-paragraph description, quick-start (clone → install → copy example config → edit → `npm run dev`), and a link back to this bridge repo.
+- `npm install` → 360 packages, 2 moderate audit warnings, no breakages.
+- `npm run dev` boots on port 3001 (port 3000 was occupied by another local process on this codebox); the default Next.js starter page returns HTTP 200.
+- `npx tsc --noEmit` and `npm run lint` both clean.
+
+### Notes for the owner
+
+- `create-next-app` also dropped its own `AGENTS.md` and `CLAUDE.md` into the repo (a one-line warning that Next 16 has breaking changes). Left in place — harmless, but say the word if you want them removed.
+- Dev server fell back to port 3001 here because another project on this codebox already binds 3000. On a clean host it will use 3000 as the brief expects.
+- No questions raised; no `questions.md` updates needed for this task.
+
+### Ready for next task
 
 ## Task: Foundation setup
 
